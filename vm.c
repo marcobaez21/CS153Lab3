@@ -315,6 +315,8 @@ clearpteu(pde_t *pgdir, char *uva)
 pde_t*
 copyuvm(pde_t *pgdir, uint sz)
 {
+  struct proc *p = myproc();
+
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
@@ -332,14 +334,38 @@ copyuvm(pde_t *pgdir, uint sz)
     if((mem = kalloc()) == 0)
       goto bad;
     memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
-      goto bad;
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0){
+	kfree(mem);
+	goto bad;
+	}
+    }   
+   /*goto bad;
   }
   return d;
-
+	
 bad:
   freevm(d);
-  return 0;
+  return 0;*/
+//FIX HERE
+	for(i=(STKBASE-p->np*PGSIZE+4);i<STKBASE;i+=PGSIZE){
+		if((pte=walkpgdir(pgdir, (void *)i, 0))==0)
+			panic("copyuvm: pte should exist");
+		if(!(*pte & PTE_P))
+			panic("copyuvm: page not present");
+		pa=PTE_ADDR(*pte);
+		flags=PTE_FLAGS(*pte);
+		if((mem=kalloc())==0)
+			goto bad;
+		memmove(mem, (char*)P2V(pa), PGSIZE);
+		if(mappages(d, (void*) i, PGSIZE, V2P(mem), flags) < 0){
+			kfree(mem);
+			goto bad;
+		}
+	}
+	return d;
+	bad:
+	freevm(d);
+	return 0;
 }
 
 //PAGEBREAK!
