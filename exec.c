@@ -62,13 +62,15 @@ exec(char *path, char **argv)
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  int z = PGROUNDUP(sz);
-  if((z = allocuvm(pgdir, z, z + PGSIZE)) == 0)
+   sz = PGROUNDUP(sz);
+   uint szStack = KERNBASE - PGSIZE;
+if((szStack = allocuvm(pgdir, szStack, szStack + 8)) == 0)
     goto bad;
-  clearpteu(pgdir, (char*)(z - PGSIZE));
+  //clearpteu(pgdir, (char*)(z - PGSIZE));
   //sp = sz;
-  if((sp=allocuvm(pgdir, STKBASE - PGSIZE, STKBASE))==0)
-	goto bad;
+    sp=STKBASE;
+  //if((sp=allocuvm(pgdir, STKBASE - PGSIZE, STKBASE))==0)
+//	goto bad;
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
@@ -97,6 +99,7 @@ exec(char *path, char **argv)
 
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
+  curproc->stackSize=1;
   curproc->pgdir = pgdir;
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main

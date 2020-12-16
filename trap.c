@@ -78,6 +78,25 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
 
+case T_PGFLT:
+	;
+	uint adr = rcr2();
+	uint numPage = myproc()->stackSize+1;
+
+	if(adr>=STKBASE-((PGSIZE*numPage)+1)){
+	 if(allocuvm(myproc()->pgdir, PGROUNDDOWN(adr), PGROUNDDOWN(adr)+8)==0){
+		cprintf("ERROR");
+		break;
+		}
+	myproc()->stackSize+=1;
+	cprintf("The size of the stack was increased succesfully!!!\n");
+	break;
+	}
+
+
+
+
+
   //PAGEBREAK: 13
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){
